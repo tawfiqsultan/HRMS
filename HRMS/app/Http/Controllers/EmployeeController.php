@@ -9,11 +9,25 @@ use App\Http\Requests\UpdateEmployeeRequest;
 class EmployeeController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of the employees.
      */
-    public function index()
+    public function getAllEmployees()
     {
-        //
+        $employees = Employee::all();
+
+        if ($employees->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No employees found.',
+                'data' => null
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Employees retrieved successfully.',
+            'data' => $employees
+        ], 200);
     }
 
     /**
