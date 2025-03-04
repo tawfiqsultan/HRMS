@@ -2,6 +2,5 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+require 'emoloyeeRouter.php';
+require 'viewsRouter.php';
