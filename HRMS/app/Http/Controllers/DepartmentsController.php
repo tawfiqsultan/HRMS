@@ -2,65 +2,124 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Departments;
+use App\Models\Department;
 use App\Http\Requests\StoreDepartmentsRequest;
 use App\Http\Requests\UpdateDepartmentsRequest;
+use Illuminate\Http\Request;
 
 class DepartmentsController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+
+    public function getAllDepartments()
     {
-        //
+        $departments = Department::with('employees', 'manager')->get();
+
+        if ($departments->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No departments found.',
+                'data' => null
+            ], 404);
+        }
+
+        $departments->transform(function ($department) {
+            $department->manager_name = $department->manager ? $department->manager->FullName : null;
+
+            $department->employeesCount = count($department->employees);
+            unset($department->manager);
+            return $department;
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Departments retrieved successfully.',
+            'data' => $departments
+        ], 200);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function getDepartment(Request $request)
     {
-        //
+        try {
+            $department = Department::with('employees', 'manager')->find($request->id);
+
+            if (!$department) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Department not found.',
+                    'data' => null
+                ], 404);
+            }
+
+            $department->manager_name = $department->manager ? $department->manager->FullName : null;
+            $department->employeesCount = count($department->employees);
+            unset($department->manager);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Department retrieved successfully.',
+                'data' => $department
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Department not found.',
+                'error' => $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreDepartmentsRequest $request)
+
+    public function addDepartment(Request $request)
     {
-        //
+        try {
+            $department = Department::create([
+                'DepartmentName' => $request->DepartmentName,
+                'DepartmentDesc' => $request->DepartmentDesc,
+                'ManagerID' => $request->ManagerID,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Department added successfully.',
+                'data' => $department
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Department not added.',
+                'error' => $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Departments $departments)
+    public function deleteDepartment(Request $request)
     {
-        //
-    }
+        try {
+            $department = Department::find($request->id);
+            if (!$department) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Department not found.',
+                    'data' => null
+                ], 404);
+            }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Departments $departments)
-    {
-        //
-    }
+            $department->delete();
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateDepartmentsRequest $request, Departments $departments)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Departments $departments)
-    {
-        //
+            return response()->json([
+                'success' => true,
+                'message' => 'Department deleted successfully.',
+                'data' => $department
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Department not deleted.',
+                'error' => $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
     }
 }
