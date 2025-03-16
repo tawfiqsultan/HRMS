@@ -8,4 +8,6 @@ Route::prefix('attendance')->group(function () {
     Route::get('/all', [AttendanceController::class, 'getAllAttendance']);
     Route::get('/attendance/{id}', [AttendanceController::class, 'getAttendance']);
     Route::patch('/update/{id}', [AttendanceController::class, 'updateAttendance']);
+    Route::post('/checkIn', [AttendanceController::class, 'checkIn']);
+    Route::post('/checkOut', [AttendanceController::class, 'checkOut']);
 });

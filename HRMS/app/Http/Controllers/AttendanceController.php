@@ -55,7 +55,23 @@ class AttendanceController extends Controller
         try {
             $today = Carbon::now()->format('Y-m-d');
 
+            if (Attendance::where('AttendanceDate', $today)->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'work day already started.',
+                    'data'    => null
+                ], 400);
+            }
+
             $employees = Employee::all();
+
+            if ($employees->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No employees found.',
+                    'data'    => null
+                ], 404);
+            }
 
             $attendance = [];
             foreach ($employees as $employee) {
@@ -129,8 +145,8 @@ class AttendanceController extends Controller
         DB::beginTransaction();
         try {
             $attendance->update([
-                'CheckInTime' => $request->CheckInTime,
-                'CheckOutTime' => $request->CheckOutTime
+                'CheckInTime' => $request->CheckInTime ? $request->CheckInTime : $attendance->CheckInTime,
+                'CheckOutTime' => $request->CheckOutTime ? $request->CheckOutTime : $attendance->CheckOutTime
             ]);
             DB::commit();
 
@@ -144,6 +160,97 @@ class AttendanceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'failed to update attendance.',
+                'error'   => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function checkIn(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            $today = Carbon::now()->format('Y-m-d');
+            $attendance = Attendance::where('EmployeeID', $request->EmployeeID)
+                ->where('AttendanceDate', $today)
+                ->first();
+
+            if (!$attendance) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Employee not found in attendance list.',
+                    'data'    => null
+                ], 404);
+            }
+
+            if ($attendance->CheckInTime) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Employee already checked in.',
+                    'data'    => null
+                ], 400);
+            }
+
+            $attendance->update([
+                'CheckInTime' => Carbon::now()->format('H:i:s')
+            ]);
+
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => 'Employee checked in successfully.',
+                'data'    => $attendance
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check in.',
+                'error'   => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function checkOut(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            $today = Carbon::now()->format('Y-m-d');
+            $attendance = Attendance::where('EmployeeID', $request->EmployeeID)
+                ->where('AttendanceDate', $today)
+                ->first();
+
+            if (!$attendance) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Employee not found in attendance list.',
+                    'data'    => null
+                ], 404);
+            }
+
+            if ($attendance->CheckOutTime) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Employee already checked out.',
+                    'data'    => null
+                ], 400);
+            }
+
+            $attendance->update([
+                'CheckOutTime' => Carbon::now()->format('H:i:s')
+            ]);
+
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => 'Employee checked out successfully.',
+                'data'    => $attendance
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check out.',
                 'error'   => $e->getMessage()
             ], 500);
         }
